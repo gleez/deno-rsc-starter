@@ -1,0 +1,110 @@
+{
+  "name": "deno-rsc-starter",
+  "version": "0.1.0",
+  "description": "A minimal, production-ready template for building React Server Components (RSC) applications with Deno and Vite.",
+  "license": "MIT",
+  "author": "Gleez, Inc <hello@gleez.tech>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gleez/deno-rsc-starter.git"
+  },
+  "homepage": "https://github.com/gleez/deno-rsc-starter",
+  "bugs": {
+    "url": "https://github.com/gleez/deno-rsc-starter/issues"
+  },
+  "exports": "./main.ts",
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "vite-plugin-rsc",
+    "react",
+    "rsc",
+    "deno",
+    "tailwind",
+    "server-components"
+  ],
+  "tasks": {
+    "dev": "deno run -A npm:vite@latest",
+    "build:main": "deno run -A npm:vite@latest build",
+    "build:fix": "deno run --allow-read --allow-write ./build-fix.ts",
+    "build": "deno task build:main && deno task build:fix",
+    "start": "NODE_ENV=production deno run -A ./main.ts"
+  },
+  "imports": {
+    "@/": "./",
+    "@deno-lib/logger": "jsr:@deno-lib/logger@^1.1.9",
+    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.6",
+    "@std/http": "jsr:@std/http@^1.0.23",
+    "@std/path": "jsr:@std/path@^1.1.4",
+    "@tailwindcss/typography": "npm:@tailwindcss/typography@^0.5.19",
+    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.18",
+    "@types/react": "npm:@types/react@^19.2.7",
+    "@types/react-dom": "npm:@types/react-dom@^19.2.3",
+    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^5.1.2",
+    "@vitejs/plugin-rsc": "npm:@vitejs/plugin-rsc@^0.5.9",
+    "react": "npm:react@^19.2.3",
+    "react-dom": "npm:react-dom@^19.2.3",
+    "rsc-html-stream": "npm:rsc-html-stream@^0.0.7",
+    "tailwindcss": "npm:tailwindcss@^4.1.18",
+    "vite": "npm:vite@latest"
+  },
+  "exclude": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "vendor/",
+    "**/*.env*",
+    "**/.env",
+    "**/.env*"
+  ],
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve",
+    "include": ["src/", "tests/", "scripts/", "lib/", "pages/", "components/"],
+    "exclude": [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "vendor/"
+    ]
+  },
+  "lint": {
+    "files": {
+      "include": ["src/", "tests/", "scripts/", "lib/", "pages/", "components/"],
+      "exclude": [
+        "node_modules/",
+        "dist/",
+        "build/",
+        "vendor/"
+      ]
+    },
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": [
+        "no-explicit-any",
+        "no-unused-vars"
+      ]
+    }
+  },
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "types": [
+      "react",
+      "react-dom",
+      "@types/react",
+      "vite/client",
+      "@vitejs/plugin-rsc/types"
+    ],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "deno.ns"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  }
+}
