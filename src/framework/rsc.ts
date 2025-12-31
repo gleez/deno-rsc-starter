@@ -25,6 +25,7 @@ const RSC_REVALIDATE_HEADER = 'x-rsc-revalidate-paths';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.js': 'text/javascript;charset=UTF-8',
+  '.mjs': 'text/javascript;charset=UTF-8',
   '.css': 'text/css;charset=UTF-8',
   '.html': 'text/html;charset=UTF-8',
   '.json': 'application/json;charset=UTF-8',
@@ -226,8 +227,16 @@ export const createHandlers = (options?: {
         relativeAssetPath = relativeAssetPath.substring(1);
       }
 
-      // Block obvious malicious patterns early (optional defense-in-depth)
-      if (relativeAssetPath.includes('..') || relativeAssetPath.includes('\\')) {
+      // Block obvious malicious patterns early (defense-in-depth)
+      if (
+        relativeAssetPath.includes('..') || relativeAssetPath.includes('\\') ||
+        relativeAssetPath.includes('\0')
+      ) {
+        logger.warn('Blocked suspicious static request', {
+          path: url.pathname,
+          ip: context.state?.clientIP,
+          requestId: context.state?.requestId,
+        });
         return new Response('Forbidden', { status: 403 });
       }
 
@@ -244,18 +253,11 @@ export const createHandlers = (options?: {
         return new Response('Bad Request', { status: 400 });
       }
 
-      // Security check: prevent directory traversal attacks
       const assetPath = fromFileUrl(assetUrl);
       const basePath = fromFileUrl(clientDistUrl);
 
-      const authorized = assetPath.startsWith(basePath);
-
-      // const authorized = fromFileUrl(assetUrl).startsWith(fromFileUrl(clientDistUrl));
-      // const file = authorized
-      //   ? await Deno.open(assetUrl, { read: true }).catch(() => null)
-      //   : null;
-
-      if (!authorized) {
+      // Critical security check: prevent directory traversal attacks
+      if (!assetPath.startsWith(basePath)) {
         // Log as warning or security event
         logger.warn('Blocked potential directory traversal attempt', {
           path: url.pathname,
@@ -291,6 +293,7 @@ export const createHandlers = (options?: {
 
       const ext = extname(assetPath).toLowerCase();
       const contentType = CONTENT_TYPES[ext] || 'text/javascript;charset=UTF-8';
+
       return new Response(file.readable, {
         headers: {
           'Content-Type': contentType,
