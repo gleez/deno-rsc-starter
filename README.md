@@ -81,3 +81,5 @@ Contributions are welcome! Feel free to open issues or PRs.
 ---
 
 Made with ❤️ for the Deno + React community
+
+**Inspired by** [@bureaudouble/rsc](https://jsr.io/@bureaudouble/rsc) – advanced RSC runtime for Deno
