@@ -1,8 +1,6 @@
 import process from 'node:process';
 import { createElement, Fragment } from 'react';
 import type { ReactFormState } from 'react-dom/client';
-import { fromFileUrl } from '@std/path/from-file-url';
-import { extname } from '@std/path/extname';
 import { getCookies, getSetCookies, setCookie } from '@std/http/cookie';
 import * as ReactServer from '@vitejs/plugin-rsc/rsc';
 
@@ -14,7 +12,7 @@ import {
   type RouteStorage,
   runWithRouteStorage,
 } from '@/lib/context.ts';
-import { logger } from '@/lib/logger.ts';
+import { createStaticHandler } from '@/lib/middleware.ts';
 import type { RscPayload } from './entry.rsc.tsx';
 
 /** The HTTP header used to send the server action ID for fetch actions. */
@@ -216,98 +214,11 @@ export const createHandlers = (options?: {
   action: string;
   contextHook?: <T>(data: T) => void | Promise<void>;
 }): RscServerHandlers => {
-  const statics: Route = {
-    pattern: `${options?.moduleBaseUrl}*`,
-    handler: async (context) => {
-      const url = new URL(context.request.url);
-      let relativeAssetPath = url.pathname.substring(options!.moduleBaseUrl.length);
-
-      // Normalize: remove leading slash
-      if (relativeAssetPath.startsWith('/')) {
-        relativeAssetPath = relativeAssetPath.substring(1);
-      }
-
-      // Block obvious malicious patterns early (defense-in-depth)
-      if (
-        relativeAssetPath.includes('..') || relativeAssetPath.includes('\\') ||
-        relativeAssetPath.includes('\0')
-      ) {
-        logger.warn('Blocked suspicious static request', {
-          path: url.pathname,
-          ip: context.state?.clientIP,
-          requestId: context.state?.requestId,
-        });
-        return new Response('Forbidden', { status: 403 });
-      }
-
-      const clientDistUrl = new URL(
-        'client/assets/',
-        options?.distDirUrl ?? new URL('./dist/', import.meta.url),
-      );
-
-      // const assetUrl = new URL(relativeAssetPath, clientDistUrl);
-      let assetUrl: URL;
-      try {
-        assetUrl = new URL(relativeAssetPath, clientDistUrl);
-      } catch {
-        return new Response('Bad Request', { status: 400 });
-      }
-
-      const assetPath = fromFileUrl(assetUrl);
-      const basePath = fromFileUrl(clientDistUrl);
-
-      // Critical security check: prevent directory traversal attacks
-      if (!assetPath.startsWith(basePath)) {
-        // Log as warning or security event
-        logger.warn('Blocked potential directory traversal attempt', {
-          path: url.pathname,
-          resolved: assetPath,
-          clientIP: context.state?.clientIP,
-          userAgent: context.request.headers.get('user-agent'),
-          requestId: context.state?.requestId,
-        });
-
-        return new Response('Not Found', { status: 404 });
-      }
-
-      let file: Deno.FsFile | null = null;
-      try {
-        file = await Deno.open(assetUrl, { read: true });
-      } catch (err) {
-        if (err instanceof Deno.errors.NotFound) {
-          return new Response('Not Found', { status: 404 });
-        }
-
-        // Log with context
-        logger.error('Failed to open static asset', {
-          path: url.pathname,
-          resolved: assetPath,
-          clientIP: context.state?.clientIP,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        return new Response('Internal Server Error', { status: 500 });
-      }
-
-      // This shouldn't happen, but TypeScript safety
-      if (!file) return new Response('Not Found', { status: 500 });
-
-      const ext = extname(assetPath).toLowerCase();
-      const contentType = CONTENT_TYPES[ext] || 'text/javascript;charset=UTF-8';
-
-      return new Response(file.readable, {
-        headers: {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Credentials': 'true',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-          'Access-Control-Allow-Headers': '*',
-          'Cache-Control': process.env.NODE_ENV === 'production'
-            ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-            : 'no-cache',
-        },
-      });
-    },
-  };
+  const statics: Route = createStaticHandler({
+    urlPrefix: `${options?.moduleBaseUrl}`,
+    diskDir: 'client/assets/',
+    distDirUrl: options?.distDirUrl,
+  }) as unknown as Route;
 
   const actions: Route = {
     method: ['GET', 'POST'],
