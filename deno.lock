@@ -27,8 +27,7 @@
     "npm:rolldown-vite@*": "7.3.0_picomatch@4.0.3",
     "npm:rsc-html-stream@^0.0.7": "0.0.7",
     "npm:tailwindcss@^4.1.18": "4.1.18",
-    "npm:vite@*": "7.3.0_picomatch@4.0.3",
-    "npm:vite@latest": "7.3.0_picomatch@4.0.3"
+    "npm:vite@^7.3.0": "7.3.0_picomatch@4.0.3"
   },
   "jsr": {
     "@deno-lib/logger@1.1.9": {
@@ -1235,7 +1234,7 @@
       "npm:react@^19.2.3",
       "npm:rsc-html-stream@^0.0.7",
       "npm:tailwindcss@^4.1.18",
-      "npm:vite@latest"
+      "npm:vite@^7.3.0"
     ]
   }
 }
