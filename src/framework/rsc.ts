@@ -21,15 +21,6 @@ const RSC_ACTION_HEADER = 'x-rsc-action-id';
 const RSC_REDIRECT_HEADER = 'x-rsc-action-redirect-path';
 const RSC_REVALIDATE_HEADER = 'x-rsc-revalidate-paths';
 
-const CONTENT_TYPES: Record<string, string> = {
-  '.js': 'text/javascript;charset=UTF-8',
-  '.mjs': 'text/javascript;charset=UTF-8',
-  '.css': 'text/css;charset=UTF-8',
-  '.html': 'text/html;charset=UTF-8',
-  '.json': 'application/json;charset=UTF-8',
-  // Add more as needed
-};
-
 interface ProcessedAction {
   returnValue?: RscPayload['returnValue'];
   formState?: ReactFormState;
