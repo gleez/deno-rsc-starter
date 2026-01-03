@@ -1,11 +1,11 @@
-import React, { Suspense } from 'react';
-import type { Props } from '../framework/rsc-renderer.tsx';
 import '../style.css';
 
-declare module '../framework/rsc-renderer.tsx' {
-  interface Props {
-    title?: string;
-  }
+import React, { Suspense } from 'react';
+
+// Props interface that can be extended by users
+export interface Props {
+  children?: React.ReactNode;
+  title?: string;
 }
 
 export const Layout: React.FC<Props> = ({ children, title }) => {
