@@ -35,6 +35,7 @@
     "@deno-lib/logger": "jsr:@deno-lib/logger@^1.1.9",
     "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.6",
     "@std/http": "jsr:@std/http@^1.0.23",
+    "@std/media-types": "jsr:@std/media-types@^1.1.0",
     "@std/path": "jsr:@std/path@^1.1.4",
     "@tailwindcss/typography": "npm:@tailwindcss/typography@^0.5.19",
     "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.18",

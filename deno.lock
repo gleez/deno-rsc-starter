@@ -1223,6 +1223,7 @@
     "dependencies": [
       "jsr:@deno-lib/logger@^1.1.9",
       "jsr:@std/http@^1.0.23",
+      "jsr:@std/media-types@^1.1.0",
       "jsr:@std/path@^1.1.4",
       "npm:@deno/vite-plugin@^1.0.6",
       "npm:@tailwindcss/typography@~0.5.19",

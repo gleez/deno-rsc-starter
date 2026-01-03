@@ -1,31 +1,14 @@
 import process from 'node:process';
 import { extname } from '@std/path/extname';
 import { fromFileUrl } from '@std/path/from-file-url';
+import { join } from '@std/path/join';
+import { normalize } from '@std/path/normalize';
+import { typeByExtension } from '@std/media-types/type-by-extension';
 
 import type { AppState } from './app-state.ts';
 import { getClientIP } from './get-client-ip.ts';
 import { logger } from './logger.ts';
 import type { Route } from './router.ts';
-
-export const CONTENT_TYPES: Record<string, string> = {
-  '.js': 'text/javascript;charset=UTF-8',
-  '.mjs': 'text/javascript;charset=UTF-8',
-  '.css': 'text/css;charset=UTF-8',
-  '.txt': 'text/plain;charset=UTF-8',
-  '.html': 'text/html;charset=UTF-8',
-  '.json': 'application/json;charset=UTF-8',
-
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  // Add more as needed
-};
 
 export function logMiddleware<TState extends AppState = AppState>(): Route<
   TState
@@ -103,64 +86,113 @@ export function logMiddleware<TState extends AppState = AppState>(): Route<
 }
 
 /**
- * Creates a secure static file handler for a given URL prefix and disk directory.
+ * Creates a secure static file handler.
  *
- * Use this to serve static assets from different paths (e.g., `/assets/*`, `/static/*`, `/cdn/*`)
- * while preventing directory traversal attacks and providing proper caching/content-type headers.
+ * The handler serves files **only for GET requests** from a configured URL
+ * prefix (e.g. `/assets/*` or `/static/*`). It performs a strict whitelist of
+ * file extensions, excludes HTML responses, and safeguards against directory
+ * traversal attacks. The response includes the appropriate `Content-Type`
+ * header and cache‑control directives.
+ *
+ * This utility works with any router that expects a `Route` object. For
+ * convenience, a `staticMiddleware` wrapper is provided to return an array of
+ * routes.
  *
  * ### Example Usage
- *
  * ```ts
- * // Serve Vite-built client assets
+ * // Serve Vite‑built client assets
  * app.get(
  *   "/assets/*",
  *   createStaticHandler({
- *     urlPrefix: "/assets/",
+ *     prefix: "/assets/",
  *     diskDir: "client/assets/",
- *   }).handler
+ *   }).handler,
  * );
  *
- * // Serve custom public files with shorter cache
+ * // Serve custom public files with a shorter cache TTL
  * app.get(
  *   "/static/*",
  *   createStaticHandler({
- *     urlPrefix: "/static/",
+ *     prefix: "/static/",
  *     diskDir: "public/",
  *     cacheControl: "public, max-age=86400",
- *   }).handler
+ *   }).handler,
  * );
  * ```
  *
  * @template TState - Your application state type
  * @param options Configuration for the static handler
- * @returns A Route object compatible with your router
+ * @property prefix The public URL prefix that maps to the `baseUrl`. Defaults to `/`.
+ * @property directory Directory inside the `dist` folder to serve from, e.g.
+ *   "client/assets/" or "public/"
+ * @property baseUrl Optional base `dist` URL (defaults to `./dist/`)
+ * @property cacheControl Optional `Cache‑Control` header value (production vs dev)
+ * @property headers Optional headers to add to every successful response.
+ * @property allowedExtensions Optional whitelist of file extensions. HTML is always excluded.
+ * @returns A `Route` object compatible with your router
  */
 export function createStaticHandler<TState extends AppState = AppState>(options: {
-  /** URL path prefix, e.g., "/assets/*" or "/static/*" */
-  urlPrefix: string;
-  /** Directory inside dist/ to serve from, e.g., "client/assets/" or "public/" */
-  diskDir: string;
-  /** Optional base dist URL (defaults to ./dist/) */
-  distDirUrl?: URL;
+  /**
+   * URL path prefix, e.g., "/assets" or "/static"
+   */
+  prefix: string;
+  /**
+   * Directory inside dist/ to serve from, e.g., "client/assets" or "public"
+   */
+  directory: string;
+  /** Optional base dist URL (defaults to ./dist/)
+   */
+  baseUrl?: URL;
   /** Optional custom cache headers */
   cacheControl?: string;
+  /** Optional custom headers */
+  headers?: HeadersInit;
+  /** Optional set of allowed file extensions for static serving. Defaults to common asset types.
+   */
+  allowedExtensions?: string[];
 }): Route<TState> {
   const {
-    urlPrefix,
-    diskDir,
-    distDirUrl = new URL('./dist/', import.meta.url),
+    prefix = '/',
+    directory,
+    baseUrl = new URL('./dist/', import.meta.url),
     cacheControl = process.env.NODE_ENV === 'production'
       ? 'public, max-age=31536000, immutable'
       : 'no-cache',
+    // Default allowed extensions if none provided
+    allowedExtensions = [
+      '.js',
+      '.mjs',
+      '.css',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.svg',
+      '.webp',
+      '.ico',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.txt',
+    ],
   } = options;
 
-  const baseDiskUrl = new URL(diskDir, distDirUrl);
+  // Convert the file:// baseUrl to an absolute filesystem path.
+  // This is our trusted root directory.
+  // const rootPath = fromFileUrl(baseUrl);
+  const rootPath = join(fromFileUrl(baseUrl), directory);
 
   return {
-    pattern: `${urlPrefix}*`,
+    method: ['GET', 'HEAD'],
+    pattern: `${prefix}/*`,
     handler: async (context) => {
-      const url = new URL(context.request.url);
-      let relativePath = url.pathname.substring(urlPrefix.length);
+      const request = context.request;
+      const url = new URL(request.url);
+
+      // 1. Sanitize and resolve the requested file path.
+      // - Decode URI components like %20.
+      // - Remove the public prefix to get the relative path.
+      // - Join it with our trusted root path.
+      let relativePath = decodeURIComponent(url.pathname).substring(prefix.length);
 
       // Normalize leading slash
       if (relativePath.startsWith('/')) {
@@ -179,30 +211,76 @@ export function createStaticHandler<TState extends AppState = AppState>(options:
         return new Response('Forbidden', { status: 403 });
       }
 
-      let assetUrl: URL;
-      try {
-        assetUrl = new URL(relativePath, baseDiskUrl);
-      } catch {
-        return new Response('Bad Request', { status: 400 });
+      // 3️⃣ Extension whitelist & HTML exclusion
+      const fileExtension = extname(relativePath).toLowerCase();
+
+      // Skip serving HTML or disallowed extensions
+      if (fileExtension === '.html' || !allowedExtensions.includes(fileExtension)) {
+        // Let the request fall through to the RSC handler
+        return context.next();
       }
 
-      const assetPath = fromFileUrl(assetUrl);
-      const basePath = fromFileUrl(baseDiskUrl);
+      const filePath = join(rootPath, relativePath);
 
-      // Critical security check: prevent directory traversal attacks
-      if (!assetPath.startsWith(basePath)) {
+      // 2️⃣ Security Check – normalization & symlink resolution
+      // Normalize the constructed path to eliminate any '..' or '.' segments.
+      const normalizedPath = normalize(filePath);
+
+      // Resolve any symlinks to get the true filesystem path.
+      let resolvedPath: string;
+      try {
+        resolvedPath = await Deno.realPath(normalizedPath);
+      } catch {
+        // If realPath fails (e.g., path does not exist), fallback to normalizedPath.
+        resolvedPath = normalizedPath;
+      }
+
+      // 2. Security Check: Prevent path traversal attacks.
+      // Ensure the resolved absolute `filePath` is still within our trusted `rootPath`.
+      if (!resolvedPath.startsWith(rootPath)) {
         logger.warn('Blocked directory traversal attempt', {
           path: url.pathname,
-          resolved: assetPath,
+          resolved: resolvedPath,
           ip: context.state?.clientIP,
           requestId: context.state?.requestId,
         });
-        return new Response('Not Found', { status: 404 });
+
+        // Return 403 Forbidden if the path attempts to escape the root directory.
+        return new Response('Forbidden', { status: 403 });
       }
 
-      let file: Deno.FsFile | null = null;
+      // 3. Open the file using Deno.open.
+      // This is more direct and secure than `fetch` for local files.
+      // Use a try-catch block as `open` throws on not-found, which is a normal 404 case.
       try {
-        file = await Deno.open(assetUrl, { read: true });
+        // 3️⃣ Open the file – now using the safely‑resolved path.
+        const file = await Deno.open(resolvedPath, { read: true });
+
+        // This shouldn't happen, but TypeScript safety
+        if (!file) return new Response('Not Found', { status: 500 });
+
+        // `using` ensures the file is closed automatically when the handler exits.
+        // 4. Get file stats for Content-Length and determine the media type.
+        const stats = await file.stat().catch(() => null);
+        const contentType = typeByExtension(fileExtension) ?? 'application/octet-stream';
+
+        // 5. Construct all headers for the response.
+        const headers = new Headers(options.headers);
+        headers.set('Content-Type', contentType);
+        if (stats) headers.set('Content-Length', String(stats.size));
+        headers.set('Cache-Control', cacheControl);
+        headers.set('Access-Control-Allow-Origin', '*');
+        headers.set('Access-Control-Allow-Credentials', 'true');
+        headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,HEAD');
+        headers.set('Access-Control-Allow-Headers', '*');
+
+        // 6. If it's a HEAD request, we've done all we need. Return just the headers.
+        if (request.method === 'HEAD') {
+          return new Response(null, { headers });
+        }
+
+        // 7. For GET requests, stream the file content in the response.
+        return new Response(file.readable, { headers });
       } catch (err) {
         if (err instanceof Deno.errors.NotFound) {
           return new Response('Not Found', { status: 404 });
@@ -210,29 +288,28 @@ export function createStaticHandler<TState extends AppState = AppState>(options:
 
         logger.error('Failed to open static file', {
           path: url.pathname,
-          resolved: assetPath,
+          resolved: filePath,
           error: err instanceof Error ? err.message : String(err),
         });
         return new Response('Internal Server Error', { status: 500 });
       }
-
-      // This shouldn't happen, but TypeScript safety
-      if (!file) return new Response('Not Found', { status: 500 });
-
-      const ext = extname(assetPath).toLowerCase();
-      const contentType = CONTENT_TYPES[ext] || 'application/octet-stream';
-
-      return new Response(file.readable, {
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': cacheControl,
-          // Optional CORS if needed
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Credentials': 'true',
-          'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-          'Access-Control-Allow-Headers': '*',
-        },
-      });
     },
   };
+}
+
+/**
+ * Convenience middleware wrapper that returns an array of Route objects using
+ * `createStaticHandler`. This avoids duplication when multiple routers expect a
+ * list of routes (e.g., `app.use(...staticMiddleware({ ... }))`.
+ */
+export function staticMiddleware<TState extends AppState = AppState>(options: {
+  prefix: string;
+  directory: string;
+  baseUrl?: URL;
+  cacheControl?: string;
+  headers?: HeadersInit;
+  allowedExtensions?: string[];
+}): Route<TState>[] {
+  const route = createStaticHandler<TState>(options);
+  return [route];
 }

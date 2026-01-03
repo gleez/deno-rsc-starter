@@ -201,14 +201,14 @@ async function processAction(request: Request): Promise<ProcessedAction> {
 
 export const createHandlers = (options?: {
   moduleBaseUrl: string;
-  distDirUrl: URL;
+  distDirUrl?: URL;
   action: string;
   contextHook?: <T>(data: T) => void | Promise<void>;
 }): RscServerHandlers => {
   const statics: Route = createStaticHandler({
-    urlPrefix: `${options?.moduleBaseUrl}`,
-    diskDir: 'client/assets/',
-    distDirUrl: options?.distDirUrl,
+    prefix: `${options?.moduleBaseUrl}`,
+    directory: 'client/assets',
+    baseUrl: options?.distDirUrl,
   }) as unknown as Route;
 
   const actions: Route = {

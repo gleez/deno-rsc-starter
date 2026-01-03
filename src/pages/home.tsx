@@ -2,7 +2,7 @@ import { Counter } from '../components/Counter.tsx';
 import { Layout } from '../components/Layout.tsx';
 
 import viteLogo from '/vite.svg';
-import reactLogo from '/react.svg';
+import reactLogo from '../assets/react.svg';
 
 import { useGleezContext } from '@/lib/app-state.ts';
 
