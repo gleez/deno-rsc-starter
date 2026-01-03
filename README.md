@@ -76,7 +76,7 @@ Contributions are welcome! Feel free to open issues or PRs.
 
 ## License
 
-[MIT](LICENSE) © 2025 Gleez, Inc
+[MIT](LICENSE) © 2026 Gleez, Inc
 
 ---
 
