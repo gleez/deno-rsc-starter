@@ -199,6 +199,21 @@ export function createStaticHandler<TState extends AppState = AppState>(options:
         relativePath = relativePath.slice(1);
       }
 
+      // Extension whitelist & HTML exclusion
+      const fileExtension = extname(relativePath).toLowerCase();
+
+      // If there is no extension → treat it as a dynamic route (HTML or RSC)
+      if (!fileExtension) {
+        // Let downstream middleware (SSR / RSC) handle it.
+        return context.next();
+      }
+
+      // Skip serving HTML or disallowed extensions
+      if (!allowedExtensions.includes(fileExtension)) {
+        // Let the request fall through to the RSC handler
+        return context.next();
+      }
+
       // Early block for obvious bad paths (defense in depth)
       if (
         relativePath.includes('..') || relativePath.includes('\\') || relativePath.includes('\0')
@@ -209,15 +224,6 @@ export function createStaticHandler<TState extends AppState = AppState>(options:
           requestId: context.state?.requestId,
         });
         return new Response('Forbidden', { status: 403 });
-      }
-
-      // 3️⃣ Extension whitelist & HTML exclusion
-      const fileExtension = extname(relativePath).toLowerCase();
-
-      // Skip serving HTML or disallowed extensions
-      if (fileExtension === '.html' || !allowedExtensions.includes(fileExtension)) {
-        // Let the request fall through to the RSC handler
-        return context.next();
       }
 
       const filePath = join(rootPath, relativePath);

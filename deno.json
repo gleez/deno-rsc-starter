@@ -74,15 +74,13 @@
     ]
   },
   "lint": {
-    "files": {
-      "include": ["src/", "tests/", "scripts/", "lib/", "pages/", "components/"],
-      "exclude": [
-        "node_modules/",
-        "dist/",
-        "build/",
-        "vendor/"
-      ]
-    },
+    "include": ["src/", "tests/", "scripts/", "lib/", "pages/", "components/"],
+    "exclude": [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "vendor/"
+    ],
     "rules": {
       "tags": ["recommended"],
       "exclude": [
