@@ -40,12 +40,12 @@
     "@types/react": "npm:@types/react@^19.2.7",
     "@types/react-dom": "npm:@types/react-dom@^19.2.3",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^5.1.2",
-    "@vitejs/plugin-rsc": "npm:@vitejs/plugin-rsc@^0.5.9",
+    "@vitejs/plugin-rsc": "npm:@vitejs/plugin-rsc@^0.5.11",
     "react": "npm:react@^19.2.3",
     "react-dom": "npm:react-dom@^19.2.3",
     "rsc-html-stream": "npm:rsc-html-stream@^0.0.7",
     "tailwindcss": "npm:tailwindcss@^4.1.18",
-    "vite": "npm:vite@^7.3.0"
+    "vite": "npm:vite@^7.3.1"
   },
   "exclude": [
     "node_modules/",
