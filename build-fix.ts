@@ -1,6 +1,5 @@
 // Read generated file
-const code = await Deno.readTextFile("./dist/rsc/index.mjs");
-
+const code = await Deno.readTextFile('./dist/rsc/index.mjs');
 
 // Replace .js → .mjs in dynamic imports
 // const updatedCode = code.replace(
@@ -10,8 +9,8 @@ const code = await Deno.readTextFile("./dist/rsc/index.mjs");
 
 const updatedCode = code.replace(
   /await import\(\s*["']([^"']*)\.js["']\s*\)/g,
-  (_, pathWithoutExt) => `await import("${pathWithoutExt}.mjs")`
+  (_, pathWithoutExt) => `await import("${pathWithoutExt}.mjs")`,
 );
 
 // Write back
-await Deno.writeTextFile("./dist/rsc/index.mjs", updatedCode);
+await Deno.writeTextFile('./dist/rsc/index.mjs', updatedCode);

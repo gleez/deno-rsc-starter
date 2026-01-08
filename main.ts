@@ -1,7 +1,5 @@
-
-import handler from './dist/rsc/index.mjs';
+import handler from './dist/rsc/index.js';
 import { logger } from '@/lib/logger.ts';
-
 
 const port = parseInt(Deno.env.get('PORT') || '8080', 10);
 
@@ -20,7 +18,9 @@ export default function main() {
           logger.error('HTTP server error:', error);
           return new Response('Internal Server Error', { status: 500 });
         },
-      }, handler);
+      },
+      handler,
+    );
   } catch (err) {
     logger.error(`Server failed to start: ${err}`);
   }

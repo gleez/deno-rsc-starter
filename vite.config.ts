@@ -1,12 +1,17 @@
-import rsc from "@vitejs/plugin-rsc";
-import react from "@vitejs/plugin-react";
-import deno from "@deno/vite-plugin";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import rsc from '@vitejs/plugin-rsc';
+import react from '@vitejs/plugin-react';
+import deno from '@deno/vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite';
+
+process.on('uncaughtException', (error) => {
+  // handle error
+  console.error({ error });
+});
 
 export default defineConfig({
-  // base: '/static/',
   plugins: [
+    deno(),
     rsc({
       // by default, the plugin sets up middleware
       // using `default` export of `rsc` environment `index` entry.
@@ -17,8 +22,6 @@ export default defineConfig({
     // use any of react plugins https://github.com/vitejs/vite-plugin-react
     // to enable client component HMR
     react(),
-
-    deno(),
 
     tailwindcss(),
     // use https://github.com/antfu-collective/vite-plugin-inspect
@@ -49,8 +52,9 @@ export default defineConfig({
       build: {
         rollupOptions: {
           input: {
-            index: "./src/framework/entry.rsc.tsx",
+            index: './src/framework/entry.rsc.tsx',
           },
+          output: { entryFileNames: `[name].js` },
         },
       },
     },
@@ -63,8 +67,9 @@ export default defineConfig({
       build: {
         rollupOptions: {
           input: {
-            index: "./src/framework/entry.ssr.tsx",
+            index: './src/framework/entry.ssr.tsx',
           },
+          output: { entryFileNames: `[name].js` },
         },
       },
     },
@@ -80,8 +85,9 @@ export default defineConfig({
         // assetsDir: 'static',
         rollupOptions: {
           input: {
-            index: "./src/framework/entry.browser.tsx",
+            index: './src/framework/entry.browser.tsx',
           },
+          output: { entryFileNames: `[name].js` },
         },
       },
     },

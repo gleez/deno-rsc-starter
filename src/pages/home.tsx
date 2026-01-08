@@ -46,8 +46,8 @@ export default function HomePage() {
           </li>
           <li>
             Visit{' '}
-            <a href='?__rsc' target='_blank'>
-              <code>?__rsc</code>
+            <a href='./__rsc' target='_blank'>
+              <code>__rsc</code>
             </a>{' '}
             to view RSC stream payload.
           </li>

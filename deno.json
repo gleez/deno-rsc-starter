@@ -25,9 +25,7 @@
   ],
   "tasks": {
     "dev": "deno run -A npm:vite@latest",
-    "build:main": "deno run -A npm:vite@latest build",
-    "build:fix": "deno run --allow-read --allow-write ./build-fix.ts",
-    "build": "deno task build:main && deno task build:fix",
+    "build": "deno run -A npm:vite@latest build",
     "start": "NODE_ENV=production deno run -A ./main.ts"
   },
   "imports": {
